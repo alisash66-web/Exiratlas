@@ -1,0 +1,60 @@
+version: '3.9'
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: eta_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: eta
+      POSTGRES_PASSWORD: eta_password
+      POSTGRES_DB: eta_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    image: node:20
+    container_name: eta_backend
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: postgresql://eta:eta_password@postgres:5432/eta_db
+    depends_on:
+      - postgres
+
+  frontend:
+    image: node:20
+    container_name: eta_frontend
+    working_dir: /app
+    volumes:
+      - ./website:/app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  n8n:
+    image: n8nio/n8n
+    container_name: eta_n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - GENERIC_TIMEZONE=Asia/Tehran
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  postgres_data:
+  n8n_data:
